@@ -1,4 +1,5 @@
 import 'package:exportasystem/screens/loginScreen.dart';
+import 'package:exportasystem/screens/registerScreen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -33,7 +34,11 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: LoginScreen(),
+      routes: {
+        '/': (context) => const LoginScreen(),
+        /* '/home': (context) => const HomeScreen(), */
+        '/register': (context) => const RegisterScreen(),
+      },
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:exportasystem/database/databaseHelper.dart';
-import 'package:exportasystem/models/user_model.dart';
+import 'package:exportasystem/models/userModel.dart';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 
 class UserRepository {
@@ -20,29 +21,41 @@ class UserRepository {
 
   // ---------- SQLITE ----------
   Future<UserModel?> findByFirebaseUid(String uid) async {
-    final db = await _db;
-    final res = await db.query('users', where: 'firebaseUid = ?', whereArgs: [uid], limit: 1);
-    if (res.isEmpty) return null;
-    return UserModel.fromMap(res.first);
-  }
-
-  Future<UserModel> upsertLocal(UserModel u) async {
-    final db = await _db;
-    final existing = await db.query('users', where: 'firebaseUid = ?', whereArgs: [u.firebaseUid], limit: 1);
-    if (existing.isEmpty) {
-      final id = await db.insert('users', u.toMap());
-      return u.copyWith(id: id);
-    } else {
-      await db.update('users', u.toMap(), where: 'firebaseUid = ?', whereArgs: [u.firebaseUid]);
-      return u.copyWith(id: existing.first['id'] as int?);
+      if (kIsWeb) return null;
+      final db = await _db;
+      final res =
+          await db.query('users', where: 'firebaseUid = ?', whereArgs: [uid]); 
+      if (res.isEmpty) return null;
+      return UserModel.fromMap(res.first);
     }
-  }
 
+   Future<void> upsertLocal (UserModel user) async {
+      if (kIsWeb) return;
+      try {
+        final db = await _db;
+        final res = await db.query('users',
+            where: 'firebaseUid = ?', whereArgs: [user.firebaseUid], limit: 1);
+
+        if (res.isEmpty) {
+            await db.insert('users', user.toMap());
+          } else {
+            await db.update('users', user.toMap(),
+                where: 'firebaseUid = ?', whereArgs: [user.firebaseUid]);
+          }
+      } catch (e) {
+        print('Erro ao salvar localmente: $e');
+      }
+    }
   // ---------- SYNC ----------
   /// Garante o usuário em ambos os lados e retorna o modelo consolidado local.
   Future<UserModel> syncUser(UserModel base) async {
-    // Prioridade: Firestore como fonte de verdade para perfil/role/classId
-    final remote = await getFromFirestore(base.firebaseUid);
+    if (base.firebaseUid == null) {
+      await upsertLocal(base);
+      return base;
+    }
+
+    final remote = await getFromFirestore(base.firebaseUid!);
+
     final merged = (remote == null)
         ? base
         : base.copyWith(
@@ -54,8 +67,8 @@ class UserRepository {
             classId: remote.classId,
           );
 
-    await upsertFirestore(merged);        // garante no remoto (merge)
-    final local = await upsertLocal(merged); // garante no local
-    return local;
+    await upsertFirestore(merged);
+    await upsertLocal(merged);
+    return merged;
   }
 }
