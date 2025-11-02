@@ -1,3 +1,4 @@
+import 'package:exportasystem/screens/homeScreen.dart';
 import 'package:exportasystem/screens/loginScreen.dart';
 import 'package:exportasystem/screens/registerScreen.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -36,7 +37,7 @@ class MyApp extends StatelessWidget {
       ),
       routes: {
         '/': (context) => const LoginScreen(),
-        /* '/home': (context) => const HomeScreen(), */
+        '/home': (context) => const HomeScreen(), 
         '/register': (context) => const RegisterScreen(),
       },
     );

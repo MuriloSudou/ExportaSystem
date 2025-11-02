@@ -13,8 +13,11 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final UserController controller = Get.put(UserController());
-  final AuthController authController = Get.put(AuthController());
+  /* final UserController controller = Get.put(UserController());
+  final AuthController authController = Get.put(AuthController()); */
+
+  final UserController controller = Get.find<UserController>();
+  final AuthController authController = Get.find<AuthController>(); //new
 
   bool _acceptContact = false;
 

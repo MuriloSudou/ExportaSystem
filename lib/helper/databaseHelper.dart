@@ -1,124 +1,68 @@
-import 'package:sqflite/sqflite.dart';
+import 'dart:async';
 import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
-  static const String _databaseName = 'db.db';
-  static const int _databaseVersion = 1;
+  static final DatabaseHelper instance = DatabaseHelper._internal();
+  static Database? _db;
 
-  // Instância única da classe
-  static final DatabaseHelper instance = DatabaseHelper._();
+  DatabaseHelper._internal();
 
-  // Database privado
-  Database? _database;
-
-  // Construtor privado
-  DatabaseHelper._();
-
-  // Getter assíncrono para o banco de dados
   Future<Database> get database async {
-    _database ??= await _initDatabase();
-    return _database!;
+    if (_db != null) return _db!;
+    _db = await _init();
+    return _db!;
   }
 
-  // Inicializa e abre o banco de dados
-  Future<Database> _initDatabase() async {
-    try {
-      // Obtém o diretório de documentos do aplicativo (seguro para escrita)
-      final directory = await getApplicationDocumentsDirectory();
-      final dbPath = join(directory.path, _databaseName);
+  Future<Database> _init() async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'exportasystem.db');
 
-      print('Database path: $dbPath');
-
-      return await openDatabase(
-        dbPath,
-        version: _databaseVersion,
-        onCreate: _onCreate,
-        onConfigure: (db) async {
-          // Ativar chaves estrangeiras
-          await db.execute('PRAGMA foreign_keys = ON;');
-        },
-      );
-    } catch (e) {
-      print('Erro ao abrir o banco de dados: $e');
-      rethrow;
-    }
+    return await openDatabase(
+      path,
+      version: 2, // A versão continua 2
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
   }
 
-  // Método chamado na criação do banco de dados
+  // ✅ MODIFICADO AQUI
   Future<void> _onCreate(Database db, int version) async {
+    // Tabela de usuários (CORRIGIDA E SINCRONIZADA)
     await db.execute('''
       CREATE TABLE users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        firebaseUid TEXT, 
         name TEXT NOT NULL,
-        email TEXT NOT NULL UNIQUE,
-        password TEXT,
-        isGoogleUser INTEGER NOT NULL,
+        lastname TEXT,                   -- 👈 ADICIONADO
+        email TEXT NOT NULL UNIQUE,      -- 👈 ADICIONADO 'UNIQUE'
+        password TEXT,                 -- 👈 ADICIONADO
+        number TEXT,                   -- 👈 ADICIONADO
         avatarUrl TEXT,
-        number TEXT,
-        lastname TEXT
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE addresses (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        userId TEXT NOT NULL,
-        street TEXT NOT NULL,
-        number TEXT NOT NULL,
-        bairro TEXT NOT NULL,
-        complement TEXT,
-        city TEXT NOT NULL,
-        state TEXT NOT NULL,
-        telefone TEXT NOT NULL,
-        zipCode TEXT NOT NULL,
-        horario TEXT, 
-        observacao TEXT,
-        isPrimary INTEGER DEFAULT 0,
-        FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        userId INTEGER NOT NULL, -- vendedor
-        name TEXT NOT NULL,
-        description TEXT NOT NULL,
-        price REAL NOT NULL,
-        stock INTEGER NOT NULL,
-        category REAL NOT NULL,
-        imageUrl TEXT NOT NULL,
-        FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE cart (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        userId INTEGER NOT NULL, -- comprador
-        productId INTEGER NOT NULL,
-        quantity INTEGER NOT NULL DEFAULT 1,
-        FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
-        FOREIGN KEY(productId) REFERENCES products(id) ON DELETE CASCADE ON UPDATE CASCADE
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE events (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        description TEXT,
-        date TEXT NOT NULL,
-        userId INTEGER NOT NULL
+        isGoogleUser INTEGER NOT NULL DEFAULT 0, -- 👈 GARANTIDO O 'DEFAULT 0'
+        role TEXT NOT NULL DEFAULT 'student',
+        classId TEXT
       )
     ''');
   }
 
-  // Função para fechar o banco de dados
+  // A função onUpgrade ainda existe para futuras migrações
+  Future<void> _onUpgrade(Database db, int oldV, int newV) async {
+    if (oldV < 2) {
+      // Como o _onCreate foi modificado, a melhor forma de atualizar
+      // é desinstalando o app. Mas para migrações futuras,
+      // o código de migração viria aqui.
+      
+      // Exemplo (não exatamente o seu caso, mas para referência):
+      // await db.execute("ALTER TABLE users ADD COLUMN lastname TEXT");
+      // await db.execute("ALTER TABLE users ADD COLUMN password TEXT");
+      // await db.execute("ALTER TABLE users ADD COLUMN number TEXT");
+      // await db.execute("ALTER TABLE users ADD COLUMN isGoogleUser INTEGER NOT NULL DEFAULT 0");
+    }
+  }
+
   Future<void> close() async {
     final db = await database;
-    db.close();
+    await db.close();
   }
 }
+

@@ -1,4 +1,5 @@
 import 'package:exportasystem/controllers/authController.dart';
+import 'package:exportasystem/controllers/userController.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -12,6 +13,9 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final AuthController controller = Get.put(AuthController());
+
+  final AuthController authController = Get.put(AuthController()); //new
+  final UserController userController = Get.put(UserController());
 
   bool _isLoading = false;
 

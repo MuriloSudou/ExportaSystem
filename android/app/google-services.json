@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "864187300572",
+    "project_id": "esportasystem",
+    "storage_bucket": "esportasystem.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:864187300572:android:9c4208e8310ee182ad9219",
+        "android_client_info": {
+          "package_name": "com.example.exportasystem"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "864187300572-l9hebngo49l54u5jj19rnrjd24f7tttg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsaOQLi9O8XQ2h4efnqi1ud1zublrX0hk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "864187300572-l9hebngo49l54u5jj19rnrjd24f7tttg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

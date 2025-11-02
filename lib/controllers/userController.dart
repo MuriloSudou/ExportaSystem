@@ -10,11 +10,13 @@ class UserController extends GetxController {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController lastnameController = TextEditingController();
   final TextEditingController numberController = TextEditingController();
+  
   // Getter para acessar o banco de dados
   Future<Database> get _database async {
     return await DatabaseHelper.instance.database;
   }
 
+  // ✅ MODIFICADO AQUI
   // Inserir um novo usuário no banco de dados
   Future<int> insertUser(String name, String email, String lastname, String password, String number) async {
     final db = await DatabaseHelper.instance.database;
@@ -26,14 +28,16 @@ class UserController extends GetxController {
         'email': email,
         'password': password,
         'number': number,
-      })
-      ;
+        'isGoogleUser': 0 // 👈 ADICIONADO (0 = false)
+      });
     } catch (e) {
-      if (e is DatabaseException && e.isUniqueConstraintError('users.email')) {
-        throw Exception('Email already registered');
-      } else {
-        rethrow; // Lança outras exceções
+      // Captura de erro melhorada
+      if (e is DatabaseException) {
+        if (e.isUniqueConstraintError() || e.toString().contains('UNIQUE constraint failed: users.email')) {
+          throw Exception('Este e-mail já está cadastrado.');
+        }
       }
+      rethrow; // Lança outras exceções
     }
   }
 
@@ -101,6 +105,5 @@ class UserController extends GetxController {
       whereArgs: [id],
     );
   }
-
-  
 }
+
