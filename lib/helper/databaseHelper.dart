@@ -18,51 +18,78 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'exportasystem.db');
 
-    return await openDatabase(
+    final db = await openDatabase(
       path,
       version: 2, // A versão continua 2
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
+    await _ensureBookingsTable(db);
+    return db;
   }
+  
 
-  // ✅ MODIFICADO AQUI
+  
   Future<void> _onCreate(Database db, int version) async {
     // Tabela de usuários (CORRIGIDA E SINCRONIZADA)
     await db.execute('''
       CREATE TABLE users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        lastname TEXT,                   -- 👈 ADICIONADO
-        email TEXT NOT NULL UNIQUE,      -- 👈 ADICIONADO 'UNIQUE'
-        password TEXT,                 -- 👈 ADICIONADO
-        number TEXT,                   -- 👈 ADICIONADO
+        lastname TEXT,                   
+        email TEXT NOT NULL UNIQUE,      
+        password TEXT,                 
+        number TEXT,                   
         avatarUrl TEXT,
-        isGoogleUser INTEGER NOT NULL DEFAULT 0, -- 👈 GARANTIDO O 'DEFAULT 0'
+        isGoogleUser INTEGER NOT NULL DEFAULT 0, 
         role TEXT NOT NULL DEFAULT 'student',
         classId TEXT
       )
     ''');
   }
+  
 
-  // A função onUpgrade ainda existe para futuras migrações
+
   Future<void> _onUpgrade(Database db, int oldV, int newV) async {
     if (oldV < 2) {
-      // Como o _onCreate foi modificado, a melhor forma de atualizar
-      // é desinstalando o app. Mas para migrações futuras,
-      // o código de migração viria aqui.
-      
-      // Exemplo (não exatamente o seu caso, mas para referência):
-      // await db.execute("ALTER TABLE users ADD COLUMN lastname TEXT");
-      // await db.execute("ALTER TABLE users ADD COLUMN password TEXT");
-      // await db.execute("ALTER TABLE users ADD COLUMN number TEXT");
-      // await db.execute("ALTER TABLE users ADD COLUMN isGoogleUser INTEGER NOT NULL DEFAULT 0");
+     
     }
   }
 
-  Future<void> close() async {
-    final db = await database;
-    await db.close();
-  }
+  Future<void> _ensureBookingsTable(Database db) async {
+  await db.execute('''
+    CREATE TABLE IF NOT EXISTS bookings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      remoteId TEXT UNIQUE,
+      numeroBooking TEXT NOT NULL,
+      armador TEXT NOT NULL,
+      navio TEXT,
+      portoEmbarque TEXT NOT NULL,
+      portoDesembarque TEXT NOT NULL,
+      previsaoEmbarque INTEGER NOT NULL,
+      previsaoDesembarque INTEGER NOT NULL,
+      quantidadeContainers INTEGER NOT NULL DEFAULT 0,
+      freetimeOrigem TEXT,
+      freetimeDestino TEXT,
+      deadlineDraft INTEGER,
+      deadlineVgm INTEGER,
+      deadlineCarga INTEGER,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      dirty INTEGER NOT NULL DEFAULT 0,
+      deleted INTEGER NOT NULL DEFAULT 0
+    );
+  ''');
+  
+
+  await db.execute(
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_remoteId ON bookings(remoteId);'
+  );
 }
 
+
+Future<void> close() async {
+  final db = await database;
+  await db.close();
+}
+}
