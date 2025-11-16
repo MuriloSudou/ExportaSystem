@@ -5,14 +5,15 @@ import 'dart:io';
 import 'package:exportasystem/controllers/userController.dart';
 import 'package:exportasystem/services/googledriveService.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:exportasystem/const/hashedPassword.dart';
 import 'package:exportasystem/helper/databaseHelper.dart';
 import 'package:exportasystem/models/userModel.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-
+import 'package:exportasystem/repository/authService.dart';
+import 'package:exportasystem/repository/authRepository.dart';
+import 'package:exportasystem/middleware/exceptions.dart';
 
 class AuthController extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -25,44 +26,82 @@ class AuthController extends GetxController {
 
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
+  final UserRepository _userRepo = UserRepository();
 
   Future<Database> get database async {
     return await DatabaseHelper.instance.database;
   }
 
-  // ========================
-  //  🔹 LOGIN COM EMAIL/SENHA
-  // ========================
+  Future<bool> registerWithEmailAndFirebase({
+    required String name,
+    required String email,
+    required String lastname,
+    required String password,
+    required String number,
+  }) async {
+    try {
+      User? firebaseUser = await _authService.registerWithEmail(email, password);
+
+      if (firebaseUser == null) {
+        throw Exception("Falha ao criar usuário no Firebase.");
+      }
+
+      UserModel newUser = UserModel(
+        firebaseUid: firebaseUser.uid, 
+        name: name,
+        email: email,
+        password: hashPassword(password), 
+        lastname: lastname,
+        number: number,
+        isGoogleUser: false,
+      );
+
+
+      UserModel syncedUser = await _userRepo.syncUser(newUser);
+
+      await saveUserSession(syncedUser);
+      return true;
+
+    } on FirebaseAuthException catch (e) {
+      throw Exceptions.fromCode(e.code);
+    } catch (e) {
+      print("❌ Erro no registerWithEmailAndFirebase: $e");
+      rethrow;
+    }
+  }
+
+
   Future<bool> loginWithEmailAndPassword() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
     final hashedPassword = hashPassword(password);
 
-    final user = await getUserByEmail(email);
-    
-    if (user != null) {
-      if (user.isGoogleUser && (user.password == null || user.password!.isEmpty)) {
-        print("❌ Usuário do Google sem senha definida.");
-        return false;
+    try {
+      await _authService.signInWithEmail(email, password);
+      final user = await getUserByEmail(email);
+      
+      if (user != null) {
+        if (user.password == hashedPassword) {
+          await saveUserSession(user);
+          print('✅ Usuário logado via Firebase e sessão local salva: ${user.toMap()}');
+          return true;
+        }
       }
       
-      if (user.password == hashedPassword) {
-        await saveUserSession(user);
-        print('✅ Usuário logado com e-mail/senha: ${user.toMap()}');
-        return true;
-      } else {
-        print("❌ Senha incorreta.");
-        return false;
-      }
-    }
+      print("❌ Senha local incorreta ou usuário não encontrado localmente.");
+      return false;
 
-    print("❌ Usuário não encontrado.");
-    return false;
+    } on FirebaseAuthException catch (e) {
+      print("❌ Erro de login do Firebase: ${e.code}");
+      throw Exceptions.fromCode(e.code);
+    } catch (e) {
+      print("❌ Erro no loginWithEmailAndPassword: $e");
+      return false;
+    }
   }
 
-  // ========================
-  //  🔹 LOGIN COM GOOGLE
-  // ========================
+
   Future<void> loginWithGoogle() async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -81,39 +120,25 @@ class AuthController extends GetxController {
       User? firebaseUser = userCredential.user;
 
       if (firebaseUser != null) {
-        final db = await database;
+        
+  
+        UserModel? localUser = await _userRepo.findByFirebaseUid(firebaseUser.uid);
 
-        final List<Map<String, dynamic>> existingUsers = await db.query(
-          'users',
-          where: 'firebaseUid = ?',
-          whereArgs: [firebaseUser.uid],
-        );
-
-        UserModel user;
-        if (existingUsers.isEmpty) {
-          user = UserModel(
+        if(localUser == null) {
+          // 2. Se não existe, cria um novo modelo
+          localUser = UserModel(
             firebaseUid: firebaseUser.uid,
             name: firebaseUser.displayName ?? "Usuário Google",
             email: firebaseUser.email ?? "Sem Email",
-            password: null,
+            password: null, // Usuário do Google não tem senha local
             avatarUrl: firebaseUser.photoURL,
             isGoogleUser: true,
           );
-
-          try {
-            int userId = await db.insert('users', user.toMap());
-            user = user.copyWith(id: userId);
-            print('✅ Novo usuário criado no SQLite: ${user.toMap()}');
-          } catch (e) {
-            print('❌ Erro ao inserir usuário no SQLite: $e');
-            return;
-          }
-        } else {
-          user = UserModel.fromMap(existingUsers.first);
-          print('✅ Usuário já existe no SQLite: ${user.toMap()}');
         }
 
-        await saveUserSession(user);
+        UserModel syncedUser = await _userRepo.syncUser(localUser);
+
+        await saveUserSession(syncedUser);
         Get.offAllNamed('/home');
       }
     } catch (e) {
@@ -166,9 +191,6 @@ class AuthController extends GetxController {
     print("✅ Senha definida com sucesso!");
   }
 
-  // ========================
-  //  🔹 SALVAR/RECUPERAR SESSÃO
-  // ========================
   Future<void> saveUserSession(UserModel user) async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -177,6 +199,11 @@ class AuthController extends GetxController {
     await prefs.setString('userEmail', user.email);
     await prefs.setString('firebaseUid', user.firebaseUid ?? '');
     await prefs.setBool('isGoogleUser', user.isGoogleUser);
+    
+    if (user.avatarUrl != null) {
+      await prefs.setString('avatarUrl', user.avatarUrl!);
+      avatarUrl.value = user.avatarUrl!;
+    }
 
     print('💾 Sessão salva: ${user.toMap()}');
   }
@@ -191,7 +218,7 @@ class AuthController extends GetxController {
     final isGoogleUser = prefs.getBool('isGoogleUser') ?? false;
      final avatarUrlStored = prefs.getString('avatarUrl') ?? "";
 
-    if (userIdString == null || userName == null || userEmail == null || firebaseUid == null) {
+    if (userIdString == null || userName == null || userEmail == null) {
       print("⚠️ Nenhum usuário encontrado na sessão.");
       return null;
     }
@@ -206,8 +233,7 @@ class AuthController extends GetxController {
     print('🔄 Sessão carregada: userId: $userId, userName: $userName, userEmail: $userEmail,avatarUrl: $avatarUrlStored');
 
     avatarUrl.value = avatarUrlStored;
-
-    return UserModel(
+    _currentUser = UserModel(
       id: userId, 
       firebaseUid: firebaseUid,
       name: userName,
@@ -215,6 +241,7 @@ class AuthController extends GetxController {
       avatarUrl: avatarUrlStored,
       isGoogleUser: isGoogleUser,
     );
+    return _currentUser;
   }
 
   Future<void> checkUserSession() async {
@@ -245,9 +272,7 @@ class AuthController extends GetxController {
     Get.offAllNamed('/login');
   }
 
-  // ========================
-  //  🔹 AVATAR
-  // ========================
+
    Future<void> selectAndUploadAvatar() async {
     try {
       final picker = ImagePicker();
@@ -297,5 +322,12 @@ class AuthController extends GetxController {
       print("❌ Erro ao atualizar avatar no banco: $e");
     }
   }
-}
 
+  @override
+  void onClose() {
+    print("✅ AuthController fechado. Limpando controladores...");
+    emailController.dispose();
+    passwordController.dispose();
+    super.onClose();
+  }
+}

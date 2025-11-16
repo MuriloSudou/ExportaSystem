@@ -10,7 +10,7 @@ class UserModel {
   final String? avatarUrl;
   final String? number;
   final String? lastname;
-  final String? role;
+  final String role;
   final String? classId;
 
   UserModel({
@@ -23,7 +23,7 @@ class UserModel {
     this.avatarUrl,
     this.number,
     this.lastname,
-    this.role,
+    this.role = 'student', 
     this.classId,
   });
 
@@ -33,14 +33,12 @@ class UserModel {
       'firebaseUid': firebaseUid,
       'name': name,
       'email': email,
-      'password': password != null && password!.isNotEmpty
-          ? hashPassword(password!)
-          : null,
+      'password': password,
       'isGoogleUser': isGoogleUser ? 1 : 0,
       'avatarUrl': avatarUrl,
       'number': number,
       'lastname': lastname,
-      'role': role,
+      'role': role, 
       'classId': classId,
     };
   }
@@ -56,7 +54,7 @@ class UserModel {
       avatarUrl: map['avatarUrl'],
       number: map['number'],
       lastname: map['lastname'],
-      role: map['role'],
+      role: map['role'] ?? 'student',
       classId: map['classId'],
     );
   }
@@ -85,7 +83,7 @@ class UserModel {
       avatarUrl: map['avatarUrl'],
       number: map['number'],
       lastname: map['lastname'],
-      role: map['role'],
+      role: map['role'] ?? 'student',
       classId: map['classId'],
     );
   }

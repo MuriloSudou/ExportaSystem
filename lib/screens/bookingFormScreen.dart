@@ -1,4 +1,3 @@
-
 import 'package:exportasystem/controllers/bookingController.dart';
 import 'package:exportasystem/models/BookingModel.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +14,7 @@ class BookingFormScreen extends StatefulWidget {
 
 class _BookingFormStateFields {
   final numeroBookingCtrl = TextEditingController();
-  final armadorCtrl = TextEditingController();
+  final armadorCtrl = TextEditingController(); 
   final navioCtrl = TextEditingController();
   final portoEmbarqueCtrl = TextEditingController();
   final portoDesembarqueCtrl = TextEditingController();
@@ -50,6 +49,19 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
   final f = _BookingFormStateFields();
   final _dateFormat = DateFormat('dd/MM/yyyy');
 
+ 
+  String? _selectedArmador; 
+
+  
+  final Map<String, String> _armadoresDisponiveis = {
+    'PIL': 'assets/images/armadores/Pill.png',
+    'Yang Ming': 'assets/images/armadores/yangming.png', 
+    'Cosco Shipping': 'assets/images/armadores/coscoshipping.png',       
+    'ONE': 'assets/images/armadores/one.png',  
+    'Evergreen': 'assets/images/armadores/evergreen.png', 
+  };
+ 
+
   @override
   void initState() {
     super.initState();
@@ -72,6 +84,10 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
           b.deadlineVgm != null ? _dateFormat.format(b.deadlineVgm!) : '';
       f.deadlineCargaCtrl.text =
           b.deadlineCarga != null ? _dateFormat.format(b.deadlineCarga!) : '';
+      
+   
+      _selectedArmador = b.armador;
+      
     }
   }
 
@@ -90,6 +106,93 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     }
   }
 
+  Future<void> _selectDate(
+      BuildContext context, TextEditingController controller) async {
+    DateTime initialDate = _parseDate(controller.text) ?? DateTime.now();
+
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        controller.text = _dateFormat.format(pickedDate);
+      });
+    }
+  }
+
+  
+  Widget _buildArmadorSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        
+        Text(
+          'Armador *',
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodySmall?.color,
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 8),
+        
+        
+        SizedBox(
+          height: 80, 
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _armadoresDisponiveis.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final armadorName = _armadoresDisponiveis.keys.elementAt(index);
+              final logoPath = _armadoresDisponiveis[armadorName]!;
+              final isSelected = _selectedArmador == armadorName;
+
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedArmador = armadorName;
+                    f.armadorCtrl.text = armadorName; 
+                    print("Armador selecionado: ${f.armadorCtrl.text}");
+                  });
+                },
+                child: Container(
+                  width: 120, 
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected ? Colors.blue : Colors.grey.shade300,
+                      width: isSelected ? 2.5 : 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      )
+                    ],
+                  ),
+                  child: Image.asset(
+                    logoPath,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => 
+                      Center(child: Icon(Icons.error, color: Colors.red)),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+  // =================================================================
+
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.booking != null;
@@ -104,10 +207,11 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
               decoration: const InputDecoration(labelText: 'Nº do Booking *'),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: f.armadorCtrl,
-              decoration: const InputDecoration(labelText: 'Armador *'),
-            ),
+
+            
+            _buildArmadorSelector(),
+            
+
             const SizedBox(height: 12),
             TextField(
               controller: f.navioCtrl,
@@ -127,18 +231,24 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: f.previsaoEmbarqueCtrl,
-              keyboardType: TextInputType.datetime,
+              readOnly: true,
               decoration: const InputDecoration(
-                  labelText: 'Previsão de Embarque (ETD) *',
-                  hintText: 'dd/mm/aaaa'),
+                labelText: 'Previsão de Embarque (ETD) *',
+                hintText: 'Selecione a data',
+                suffixIcon: Icon(Icons.calendar_today),
+              ),
+              onTap: () => _selectDate(context, f.previsaoEmbarqueCtrl),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: f.previsaoDesembarqueCtrl,
-              keyboardType: TextInputType.datetime,
+              readOnly: true,
               decoration: const InputDecoration(
-                  labelText: 'Previsão de Desembarque (ETA) *',
-                  hintText: 'dd/mm/aaaa'),
+                labelText: 'Previsão de Desembarque (ETA) *',
+                hintText: 'Selecione a data',
+                suffixIcon: Icon(Icons.calendar_today),
+              ),
+              onTap: () => _selectDate(context, f.previsaoDesembarqueCtrl),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -159,24 +269,35 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: f.deadlineDraftCtrl,
-              keyboardType: TextInputType.datetime,
+              readOnly: true,
               decoration: const InputDecoration(
-                  labelText: 'Deadline Draft', hintText: 'dd/mm/aaaa'),
+                labelText: 'Deadline Draft',
+                hintText: 'Selecione a data',
+                suffixIcon: Icon(Icons.calendar_today),
+              ),
+              onTap: () => _selectDate(context, f.deadlineDraftCtrl),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: f.deadlineVgmCtrl,
-              keyboardType: TextInputType.datetime,
+              readOnly: true,
               decoration: const InputDecoration(
-                  labelText: 'Deadline VGM', hintText: 'dd/mm/aaaa'),
+                labelText: 'Deadline VGM',
+                hintText: 'Selecione a data',
+                suffixIcon: Icon(Icons.calendar_today),
+              ),
+              onTap: () => _selectDate(context, f.deadlineVgmCtrl),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: f.deadlineCargaCtrl,
-              keyboardType: TextInputType.datetime,
+              readOnly: true,
               decoration: const InputDecoration(
-                  labelText: 'Deadline Carga (Cut-off)',
-                  hintText: 'dd/mm/aaaa'),
+                labelText: 'Deadline Carga (Cut-off)',
+                hintText: 'Selecione a data',
+                suffixIcon: Icon(Icons.calendar_today),
+              ),
+              onTap: () => _selectDate(context, f.deadlineCargaCtrl),
             ),
             const SizedBox(height: 24),
             Obx(() => ElevatedButton.icon(
@@ -187,12 +308,13 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.save),
                   label: Text(isEdit ? 'Salvar alterações' : 'Cadastrar'),
+                  
                   onPressed: c.isLoading.value
                       ? null
                       : () async {
                           final error = c.validate(
                             numeroBooking: f.numeroBookingCtrl.text,
-                            armador: f.armadorCtrl.text,
+                            armador: f.armadorCtrl.text, // <- Já está correto
                             portoEmbarque: f.portoEmbarqueCtrl.text,
                             portoDesembarque: f.portoDesembarqueCtrl.text,
                             previsaoEmbarqueStr: f.previsaoEmbarqueCtrl.text,
@@ -207,9 +329,9 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                             return;
                           }
 
-                          // Parse values
+                          
                           final numeroBooking = f.numeroBookingCtrl.text.trim();
-                          final armador = f.armadorCtrl.text.trim();
+                          final armador = f.armadorCtrl.text.trim(); 
                           final navio = f.navioCtrl.text.trim().isEmpty
                               ? null
                               : f.navioCtrl.text.trim();

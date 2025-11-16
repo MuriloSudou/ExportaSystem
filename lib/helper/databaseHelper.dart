@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:path/path.dart';
+
+
 import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
@@ -20,21 +22,20 @@ class DatabaseHelper {
 
     final db = await openDatabase(
       path,
-      version: 2, // A versão continua 2
+     
+      version: 4, 
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
-    await _ensureBookingsTable(db);
     return db;
   }
   
-
-  
   Future<void> _onCreate(Database db, int version) async {
-    // Tabela de usuários (CORRIGIDA E SINCRONIZADA)
+   
     await db.execute('''
       CREATE TABLE users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        firebaseUid TEXT UNIQUE, 
         name TEXT NOT NULL,
         lastname TEXT,                   
         email TEXT NOT NULL UNIQUE,      
@@ -46,13 +47,22 @@ class DatabaseHelper {
         classId TEXT
       )
     ''');
+
+    await _ensureBookingsTable(db);
   }
   
-
-
   Future<void> _onUpgrade(Database db, int oldV, int newV) async {
-    if (oldV < 2) {
-     
+    if (oldV < 3) {
+      
+      await _ensureBookingsTable(db);
+    }
+    
+   
+    if (oldV < 4) {
+      await db.execute("ALTER TABLE users ADD COLUMN firebaseUid TEXT");
+   
+      await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);");
+      await db.execute("CREATE INDEX IF NOT EXISTS idx_users_firebaseUid ON users(firebaseUid);");
     }
   }
 
@@ -81,12 +91,10 @@ class DatabaseHelper {
     );
   ''');
   
-
   await db.execute(
     'CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_remoteId ON bookings(remoteId);'
   );
 }
-
 
 Future<void> close() async {
   final db = await database;

@@ -2,17 +2,28 @@ rules_version='2'
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // REGRA ANTIGA (EXPIRADA)
+    // allow read, write: if request.time < timestamp.date(2025, 10, 8);
+
+    // 🚀 NOVA REGRA 
+    // Permite que qualquer usuário autenticado leia e escreva
+    // seus próprios dados. Isso é muito mais seguro.
+    match /users/{userId} {
+      allow read, update, delete: if request.auth.uid == userId;
+      allow create: if request.auth.uid != null;
+    }
+    
+    // Regra para os bookings (permite que um usuário logado
+    // crie, leia, atualize e delete seus próprios bookings)
+    match /users/{userId}/bookings/{bookingId} {
+    	allow read, write: if request.auth.uid == userId;
+    }
+
+    // CUIDADO: Esta regra abaixo é para desenvolvimento.
+    // Ela libera o resto do seu banco. Remova se não precisar.
     match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2025, 10, 8);
+      allow read, write: if request.auth != null;
     }
   }
 }

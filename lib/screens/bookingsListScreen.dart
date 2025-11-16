@@ -10,7 +10,7 @@ import 'package:exportasystem/screens/bookingFormScreen.dart';
 
 class BookingsListScreen extends StatelessWidget {
   BookingsListScreen({super.key});
-  final c = Get.put(BookingController());
+  final c = Get.find<BookingController>();
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +31,7 @@ class BookingsListScreen extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: TextField(
               decoration: const InputDecoration(
-                hintText: 'Buscar por nº, armador ou navio...',
+                hintText: 'Buscar por nº',
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(),
               ),

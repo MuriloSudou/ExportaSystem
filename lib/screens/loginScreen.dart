@@ -14,17 +14,15 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controladores do seu arquivo original
   final AuthController controller = Get.put(AuthController());
   final UserController userController = Get.put(UserController());
 
-  // Estado do seu arquivo original
   bool _isLoading = false;
   
-  // Estado do novo design
+ 
   bool _obscure = true;
 
-  // Cores do novo design
+
   static const corPrincipal = Color(0xFF1E88E5);
   static const background = Color(0xFFF5F7FA);
   static const corTexto = Color(0xFF37474F);
@@ -40,14 +38,13 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              // Imagem do novo design
-              Image.asset("assets/images/logo.png", height: 150), // Verifique este caminho
+              
+              Image.asset("assets/images/logo.png", height: 150), 
               const SizedBox(height: 50),
               
-              // Card do novo design
+              
               Container(
-                // SEM altura fixa, para ser flexível
-                width: 300, // Largura do novo design
+                width: 300,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -65,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      // Campo de Email (Design novo + Controller original)
+                      
                       TextFormField(
                         controller: controller.emailController,
                         style: TextStyle(
@@ -78,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           "seu.email@exemplo.com",
                           Icons.email_outlined,
                         ),
-                        // Validação do seu arquivo original
+                       
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Por favor, insira seu e-mail';
@@ -90,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 20),
                       
-                      // Campo de Senha (Design novo + Controller original)
+                      
                       TextFormField(
                         controller: controller.passwordController,
                         style: TextStyle(
@@ -115,7 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         obscureText: _obscure,
-                        // Validação do seu arquivo original
+                      
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Por favor, insira sua senha';
@@ -127,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 40),
                       
-                      // Botão Entrar (Design novo + Lógica original)
+                      
                       ElevatedButton(
                         onPressed: _isLoading ? null : _submit,
                         style: _buildButtonStyle(),
@@ -146,7 +143,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 20),
                       
-                      // Navegação "Criar conta" (Design novo + Lógica original)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -156,7 +152,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           TextButton(
                             onPressed: () {
-                              // Navegação do seu arquivo original
                               Navigator.pushNamed(context, '/register');
                             },
                             child: const Text(
@@ -164,14 +159,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: corPrincipal, // Cor do novo design
+                                color: corPrincipal, 
                               ),
                             ),
                           ),
                         ],
                       ),
                       
-                      // Divisor "ou" (Do seu arquivo original)
+
                       const SizedBox(height: 10),
                       Row(
                         children: const [
@@ -185,7 +180,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 20),
                       
-                      // Botão Google (Lógica original + Estilo novo)
                       OutlinedButton.icon(
                         onPressed: _isLoading ? null : controller.loginWithGoogle,
                         style: OutlinedButton.styleFrom(
@@ -197,7 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         icon: Image.asset(
-                          'assets/icons/google.png', // Caminho do seu arquivo original
+                          'assets/icons/google.png', 
                           height: 20,
                         ),
                         label: const Text('Fazer login com o Google'),
@@ -213,7 +207,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Função de submit do seu arquivo original
   Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -240,7 +233,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // --- Funções de UI do novo design ---
 
   InputDecoration _buildInputDecoration(
       String label, String hint, IconData icon) {
